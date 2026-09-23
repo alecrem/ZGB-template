@@ -48,16 +48,21 @@ this template:
     the serial link depending on `cond`. Both outcomes are written (not
     just failures) so a hang is distinguishable from silent success.
   - `TEST_DONE()` — writes `DONE`, then the ROM halts (infinite loop).
-- `Makefile.testrom` — minimal build recipe (analogous to
-  `MakefileCommon`, but without requiring a full game's resource set) that
-  turns one test `.c` file into one small `.gb`.
+**Refinement made while writing the implementation plan:** no separate
+`Makefile.testrom` turned out to be needed. `MakefileCommon` already
+discovers its sources/resources purely from relative paths (`./*.c`,
+`../res/*.gbr`, etc.), so a `tests/Makefile` that includes it directly —
+exactly like `src/Makefile` does — works unmodified, as long as the test
+build uses its own `BUILD_TYPE` value (`TestRom`) so its object directory
+never collides with `src/`'s (or, on a case-insensitive filesystem, with
+`tests/` itself).
 
 ### `tests/` (ZGB-template, and any game repo adopting this)
 
 - `tests/*.c` — one file per test suite, each `#include`-ing
   `TestAssert.h` and exercising real engine/game functions.
-- `tests/Makefile` — includes `$(ZGB_PATH)/test-harness/Makefile.testrom`,
-  same pattern as `src/Makefile` including `MakefileCommon`.
+- `tests/Makefile` — includes `$(ZGB_PATH)/src/MakefileCommon` directly,
+  same pattern as `src/Makefile`.
 - `test-rom.sh` (repo root) — analogous to `smoke-test.sh`: builds the
   fork's `runner` binary once, builds each `tests/*.c` to its own `.gb`,
   runs the runner against each, aggregates PASS/FAIL/TIMEOUT across all
@@ -99,7 +104,8 @@ logic.
 
 ## Open follow-ups (not blocking)
 
-- Exact cycle-count ceiling for the timeout safety net needs picking
-  empirically once `runner.c` exists (needs to comfortably exceed the
-  longest real test's runtime without making a genuine hang take too long
-  to report).
+- Resolved while writing the implementation plan: the safety net is a
+  frame-count ceiling (`gb_run_frame()` is Peanut-GB's actual execution
+  primitive, not a raw cycle count), set to 600 frames (~10s of emulated
+  time) — `DONE` normally arrives within the first frame since assertions
+  run synchronously at boot, before any `wait_vbl_done()`.
