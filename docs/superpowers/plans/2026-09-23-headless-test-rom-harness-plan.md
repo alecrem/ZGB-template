@@ -474,19 +474,20 @@ Create `tests/Makefile`:
 ```make
 PROJECT_NAME = ZGB_TEMPLATE_TESTS
 
+all: build_gb
+
 N_BANKS = A
 MUSIC_PLAYER = HUGETRACKER
 DEFAULT_SPRITES_SIZE = SPRITES_8x16
-
-CFLAGS += -I$(ZGB_PATH)/test-harness
 
 include $(ZGB_PATH)/src/MakefileCommon
 ```
 
 Notes for whoever reads this later:
+- `all: build_gb`, placed before the `include`, matches `src/Makefile` exactly and matters for a non-obvious reason: GNU Make's default goal is the target of the first rule in the first makefile, and without this line here, the default goal falls through to the first target defined *inside* `MakefileCommon` itself (a harmless `mkdir ../bin` rule) — so a bare `make -C tests BUILD_TYPE=TestRom` (no explicit target) would exit 0 having built nothing, silently. `src/Makefile` already has this line for the same reason; `smoke-test.sh` works only because it's there.
 - No `BUILD_TYPE` line here on purpose — `MakefileCommon` unconditionally sets `BUILD_TYPE = Release` partway through itself, which would silently override any plain assignment made before the `include`. The only way to actually control it is a command-line override (`make BUILD_TYPE=TestRom`), which is why `test-rom.sh` (Task 4) always passes it explicitly, the same way `smoke-test.sh` already does for `src/`.
 - The build-type value is `TestRom`, not `Tests` — deliberately not a case-only variant of the `tests/` directory name. macOS's default filesystem (APFS) is case-insensitive, so a `../Tests` object directory would be **the same directory on disk** as `../tests` (this repo's `tests/` source folder one level up from where `make` runs), and `make clean`'s `rm -rf $(OBJDIR)/*.*` would then be operating on your source directory. Confirmed this collision actually happens with `mkdir tests && mkdir Tests` on this machine before settling on `TestRom`.
-- `CFLAGS += -I$(ZGB_PATH)/test-harness` is what makes `#include "TestAssert.h"` resolve, without needing to move that header into the shared `common/include` that every non-test build also sees on its path. Wait — it's already in `common/include` per Task 2. Keep this `-I` anyway only if `TestAssert.h` ends up needing a path SDCC doesn't already search; verify by attempting the build in Step 5 first, and only add the flag if the build fails with "TestAssert.h: No such file". (`common/include` is already on every build's path via `-I$(ZGB_PATH_UNIX)/include` in `MakefileCommon`, so this extra flag is very likely a no-op — leave it out unless Step 5 proves otherwise, to avoid a pointless flag nobody can explain later.)
+- No `CFLAGS += -I...` line for `TestAssert.h` — confirmed unnecessary. `common/include` (where Task 2 put `TestAssert.h`) is already on every build's path via `-I$(ZGB_PATH_UNIX)/include` in `MakefileCommon`, and `#include "TestAssert.h"` resolves with no extra flag.
 
 - [ ] **Step 5: Build it and verify a real ROM comes out**
 
