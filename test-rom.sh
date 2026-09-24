@@ -4,13 +4,8 @@
 set -u
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-RUNNER_SRC="$ZGB_PATH/test-harness/runner.c"
+RUNNER_SRC="${ZGB_PATH:?ZGB_PATH is not set}/test-harness/runner.c"
 RUNNER_BIN="$SCRIPT_DIR/.test-rom-runner"
-
-if [ -z "${ZGB_PATH:-}" ]; then
-  echo "ZGB_PATH is not set." >&2
-  exit 1
-fi
 
 echo "== Building runner =="
 if ! cc -std=c99 -Wall -Wextra -O2 -o "$RUNNER_BIN" "$RUNNER_SRC"; then
@@ -19,10 +14,6 @@ if ! cc -std=c99 -Wall -Wextra -O2 -o "$RUNNER_BIN" "$RUNNER_SRC"; then
 fi
 
 echo "== Building test ROM =="
-if ! make -C "$SCRIPT_DIR/tests" clean BUILD_TYPE=TestRom; then
-  echo "FAIL (tests clean failed)"
-  exit 1
-fi
 if ! make -C "$SCRIPT_DIR/tests" BUILD_TYPE=TestRom; then
   echo "FAIL (tests build failed)"
   exit 1
