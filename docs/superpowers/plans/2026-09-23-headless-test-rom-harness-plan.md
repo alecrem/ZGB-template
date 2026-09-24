@@ -34,9 +34,9 @@
 - `tests/StateGame.c` — the test-ROM's actual test case (mirrors real `src/StateGame.c::START()`, but asserts instead of playing).
 - `tests/SpritePlayer.c` — trivial required boilerplate (same shape as `src/SpritePlayer.c`; `ZGBMain.h`'s `SPRITES` list still declares `SpritePlayer`, so a build linking against it needs this file to exist, same as any real ZGB build does).
 - `tests/ZGBMain.c` — trivial required boilerplate (same shape as `src/ZGBMain.c`).
-- `tests/Makefile` — includes the fork's `MakefileCommon`, same pattern as `src/Makefile`, plus one extra `-I` for `TestAssert.h`'s location.
+- `tests/Makefile` — includes the fork's `MakefileCommon`, same pattern as `src/Makefile`. No extra `-I` for `TestAssert.h`'s location — `common/include` is already on every build's path via `-I$(ZGB_PATH_UNIX)/include` in `MakefileCommon`.
 - `test-rom.sh` (repo root) — builds `runner` (host-native), builds `tests/` (GBDK, via `BUILD_TYPE=TestRom` so it gets its own object directory and never collides with `src/`'s `Release`/`Debug`/etc. directories), runs `runner` against the resulting ROM, reports the result.
-- `.gitignore` — add `Tests/` (the new build-output directory `tests/Makefile` will create, parallel to the existing `Release*/`/`Debug*/` patterns).
+- `.gitignore` — add `TestRom/` (the new build-output directory `BUILD_TYPE=TestRom` creates, parallel to the existing `Release*/`/`Debug*/` patterns).
 - `README.md` — document `./test-rom.sh` under Testing, next to `./smoke-test.sh`.
 - `spec.md` — log this change, mark Tier 2 done.
 

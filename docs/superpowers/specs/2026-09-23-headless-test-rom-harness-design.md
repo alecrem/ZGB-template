@@ -1,6 +1,6 @@
 # Headless test-ROM harness (Tier 2 testing/harnessing)
 
-Status: design approved by user, not yet implemented.
+Status: implemented.
 
 ## Context
 
@@ -47,7 +47,12 @@ this template:
   - `TEST_ASSERT(cond, name)` — writes `PASS <name>` or `FAIL <name>` over
     the serial link depending on `cond`. Both outcomes are written (not
     just failures) so a hang is distinguishable from silent success.
-  - `TEST_DONE()` — writes `DONE`, then the ROM halts (infinite loop).
+  - `TEST_DONE()` — writes `DONE` and returns normally; the ROM does not
+    halt itself. `START()` calls `TEST_DONE()` and returns, and the
+    engine's main loop keeps calling `UPDATE()` afterward (a no-op in this
+    test). This is harmless in practice because the runner stops advancing
+    emulated frames once it sees the `DONE` line, but the code makes no
+    halt guarantee.
 **Refinement made while writing the implementation plan:** no separate
 `Makefile.testrom` turned out to be needed. `MakefileCommon` already
 discovers its sources/resources purely from relative paths (`./*.c`,
@@ -64,9 +69,10 @@ never collides with `src/`'s (or, on a case-insensitive filesystem, with
 - `tests/Makefile` — includes `$(ZGB_PATH)/src/MakefileCommon` directly,
   same pattern as `src/Makefile`.
 - `test-rom.sh` (repo root) — analogous to `smoke-test.sh`: builds the
-  fork's `runner` binary once, builds each `tests/*.c` to its own `.gb`,
-  runs the runner against each, aggregates PASS/FAIL/TIMEOUT across all
-  test ROMs, non-zero exit on any failure.
+  fork's `runner` binary once, builds all of `tests/*.c` into a single
+  test ROM (`bin/ZGB_TEMPLATE_TESTS.gb` — `MakefileCommon` globs every
+  `.c` file under `tests/` into one link), and runs the runner against
+  that ROM, non-zero exit on any failure.
 
 ## Protocol
 
@@ -98,9 +104,17 @@ logic.
 - CI wiring for either `smoke-test.sh` or `test-rom.sh` — both are local
   scripts for now, matching the Tier 1 decision (no CI configured in
   either repo yet).
-- Multi-ROM-per-binary aggregation — each test suite file currently
-  compiles to its own standalone `.gb`; revisit if per-ROM build time
-  becomes a problem.
+- Multi-suite / multi-ROM support — all of `tests/*.c` link into a single
+  ROM (`bin/ZGB_TEMPLATE_TESTS.gb`); the ZGB engine's state machine only
+  ever runs the one state named by `next_state` at boot, so a second
+  `tests/StateY.c` would compile and link but never execute at runtime.
+  Adding a genuinely independent, separately-runnable test suite requires
+  (a) adding a new state to the `STATES` macro in `include/ZGBMain.h`,
+  (b) adding a new `tests/StateWhatever.c` implementing that state's
+  `START()`/`UPDATE()`, and (c) switching which state `next_state` points
+  to — there's no mechanism yet to select which state runs at test-time
+  beyond that. This is a real, current limitation, not something this
+  plan solved.
 
 ## Open follow-ups (not blocking)
 
