@@ -121,5 +121,6 @@ logic.
 - Resolved while writing the implementation plan: the safety net is a
   frame-count ceiling (`gb_run_frame()` is Peanut-GB's actual execution
   primitive, not a raw cycle count), set to 600 frames (~10s of emulated
-  time) — `DONE` normally arrives within the first frame since assertions
-  run synchronously at boot, before any `wait_vbl_done()`.
+  time). Measured against the real first test-ROM: `DONE` arrives at
+  frame 27, not "the first frame" as originally assumed — MAX_FRAMES
+  still gives a wide (~20x) safety margin.
